@@ -1,0 +1,57 @@
+apply plugin: 'groovy'
+//apply plugin: 'com.novoda.bintray-release'
+apply plugin: 'maven-publish'
+apply plugin: 'maven'
+apply plugin: 'kotlin'
+//apply plugin: 'com.gradle.plugin-publish'
+
+buildscript {
+  repositories {
+    jcenter()
+  }
+  dependencies {
+//    classpath 'com.novoda:bintray-release:0.9.1'
+    classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:1.3.41"
+  }
+}
+
+repositories {
+  jcenter()
+  google()
+  maven { url "https://plugins.gradle.org/m2/" }
+}
+
+dependencies {
+  implementation fileTree(dir: 'libs', include: ['*.jar'])
+  implementation gradleApi()
+  implementation localGroovy()
+
+  implementation 'com.android.tools.build:gradle:3.4.1'
+}
+
+//afterEvaluate {
+//    tasks.all { task ->
+//        if (task.name == "generatePomFileForMavenPublication") {
+//            task.setEnabled(false)
+//        } else {
+//        }
+//    }
+//}
+
+//publish {
+//  userOrg = 'kezong'
+//  groupId = 'com.kezong'
+//  artifactId = 'fat-aar'
+//  publishVersion = '1.2.5'
+//  desc = 'Gradle plugin for merging dependencies applies to gradle plugin version 3.+'
+//  website = 'https://github.com/kezong/fat-aar-android'
+//}
+
+uploadArchives {
+  repositories.mavenDeployer {
+    repository(url: uri('../repository/'))
+    pom.groupId = 'com.tangnb.plugin1'//包名
+    pom.artifactId = 'fat-aar'//在需要引用插件时用到
+    pom.version = '1.0.1'
+  }
+}
