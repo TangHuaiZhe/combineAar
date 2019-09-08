@@ -27,6 +27,7 @@ dependencies {
   implementation localGroovy()
 
   implementation 'com.android.tools.build:gradle:3.4.1'
+  implementation deps.android
 }
 
 //afterEvaluate {

@@ -91,8 +91,10 @@ class FatLibraryPlugin : Plugin<Project> {
   }
 
   private fun processVariant(variant: LibraryVariant) {
-    SomeUtils.logGreen("processVariant $variant")
+    SomeUtils.logGreen("processVariant ${variant.flavorName}")
     val processor = VariantProcessor(project, variant)
+
+    //todo artifacts列表为空 如何处理
     if(artifacts != null){
       processor.addArtifacts(artifacts!!)
       SomeUtils.logGreen("processor.addArtifacts $artifacts")

@@ -1,5 +1,6 @@
 package com.tangnb.superaar
 
+import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.BaseVariantOutput
 import com.android.build.gradle.api.LibraryVariant
@@ -14,6 +15,7 @@ import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.io.FileOutputStream
 
+@SuppressLint("DefaultLocale")
 class RProcessor(
     private val mProject: Project,
     private val mVariant: LibraryVariant,
@@ -31,7 +33,7 @@ class RProcessor(
       val map = hashMapOf<String, HashMap<String, String>>()
       file.forEachLine { line ->
         val (intNum, resType, resName, resValue) = line.split(' ')
-        map[resType][resName] = resValue
+        map[resType]?.set(resName, resValue)
       }
       return map
     }
@@ -49,10 +51,10 @@ class RProcessor(
   private val mVersionAdapter: VersionAdapter =
       VersionAdapter(mProject, mVariant, mGradlePluginVersion)
 
-  private fun deleteEmptyDir(file: File) {RProcessor
-    file.walk().forEach { x ->
-      if (x.isDirectory && x.listFiles()!!.isEmpty()) {
-        x.delete()
+  private fun deleteEmptyDir(file: File) {
+    file.walk().forEach {
+      if (it.isDirectory && it.listFiles()!!.isEmpty()) {
+        it.delete()
       }
     }
   }
@@ -65,8 +67,8 @@ class RProcessor(
     mAarUnZipDir = mJarDir.parentFile
     // aar output dir
     mAarOutputDir = mProject.file(mProject.buildDir.toString() + "/outputs/aar/")
-    mAarOutputPath = DefaultGroovyMethods.first<BaseVariantOutput>(mVariant.outputs).getOutputFile()
-        .getAbsolutePath()
+    mAarOutputPath =mVariant.outputs.first().outputFile
+        .absolutePath
   }
 
   fun inject(bundleTask: Task) {
@@ -133,7 +135,7 @@ class RProcessor(
     }
 
     val sb: StringBuilder = StringBuilder()
-    sb.append("package $aarPackageName;'\n\n'")
+    sb.append("package $aarPackageName;\n\n")
     sb.append("public final class R {\n")
 
     rMap.forEach { (resType, values) ->
@@ -183,7 +185,7 @@ class RProcessor(
           it.sourceCompatibility = android.compileOptions.sourceCompatibility.toString()
           it.targetCompatibility = android.compileOptions.targetCompatibility.toString()
           it.classpath = classpath
-          it.destinationDir
+          it.destinationDir = destinationDir
         }
 
     task.doFirst {

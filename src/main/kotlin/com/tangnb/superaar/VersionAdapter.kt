@@ -1,5 +1,6 @@
 package com.tangnb.superaar
 
+import android.annotation.SuppressLint
 import com.android.build.gradle.api.LibraryVariant
 import com.android.build.gradle.tasks.ManifestProcessorTask
 import org.gradle.api.Project
@@ -7,6 +8,7 @@ import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
 import java.io.File
 
+@SuppressLint("DefaultLocale")
 class VersionAdapter(
     private val mProject: Project,
     private val mVariant: LibraryVariant,
@@ -33,11 +35,11 @@ class VersionAdapter(
 
   val rClassPath: ConfigurableFileCollection
     get() = when {
-      SomeUtils.compareVersion(mGradlePluginVersion, "3.5.0") >= 0 ->
+      mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.5.0") ->
         mProject.files(
             mProject.buildDir.path + "/intermediates/"
                 .plus("compile_only_not_namespaced_r_class_jar/").plus(mVariant.name))
-      SomeUtils.compareVersion(mGradlePluginVersion, "3.3.0") >= 0 ->
+      mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.3.0") ->
         mProject.files(
             mProject.buildDir.path + "/intermediates/"
                 .plus("compile_only_not_namespaced_r_class_jar/").plus(

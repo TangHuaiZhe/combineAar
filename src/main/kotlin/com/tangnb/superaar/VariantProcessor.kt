@@ -1,5 +1,6 @@
 package com.tangnb.superaar
 
+import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.LibraryVariant
 import com.android.build.gradle.internal.tasks.MergeFileTask
@@ -10,7 +11,9 @@ import org.gradle.api.internal.artifacts.DefaultResolvedArtifact
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskDependency
 import java.io.File
+import kotlin.collections.ArrayList
 
+@SuppressLint("DefaultLocale")
 internal class VariantProcessor(
     private val mProject: Project,
     private val mVariant: LibraryVariant
@@ -157,7 +160,23 @@ internal class VariantProcessor(
         }.dependsOn(buildDependencies.first()).mustRunAfter(buildDependencies.first())
         buildDependencies.first().finalizedBy(explodeTask)
 
-        val copyTarget = findAarPath(explodeTask, artifact)
+//        val copyTarget = findAarPath(explodeTask, artifact)
+
+        var copyTarget = ""
+        explodeTask.doFirst {
+          SomeUtils.logGreen("explodeTask doFirst")
+          //todo 找到编译出来的module的aar
+          val path = artifact.file.absolutePath.substringBeforeLast("/")
+          File(path).walk().filter { it.isFile }.forEach {
+            if (it.name.replace("-", "").toLowerCase() == artifact.toString().replace("-",
+                            "").toLowerCase()) {
+              copyTarget = it.absolutePath
+            }
+          }
+          if (copyTarget.isEmpty()) {
+            SomeUtils.logYellow("找不到aar文件1: ${artifact.file.absolutePath}")
+          }
+        }
 
         explodeTask.doLast {
           SomeUtils.logGreen("explodeTask doLast")
@@ -170,9 +189,9 @@ internal class VariantProcessor(
           }
         }
 
-        if (buildDependencies.size == 0) {
-          explodeTask.dependsOn(prepareTask)
-        }
+//        if (buildDependencies.size == 0) {
+//          explodeTask.dependsOn(prepareTask)
+//        }
 //        else {
 //          SomeUtils.logGreen("$explodeTask dependsOn ${buildDependencies.first()}")
 //          explodeTask.dependsOn(buildDependencies.first())
@@ -183,28 +202,6 @@ internal class VariantProcessor(
         mExplodeTasks.add(explodeTask)
       }
     }
-  }
-
-  private fun findAarPath(
-      explodeTask: Task,
-      artifact: DefaultResolvedArtifact
-  ): String {
-    var copyTarget = ""
-    explodeTask.doFirst {
-      SomeUtils.logGreen("explodeTask doFirst")
-      //todo 找到编译出来的module的aar
-      val path = artifact.file.absolutePath.substringBeforeLast("/")
-      File(path).walk().filter { it.isFile }.forEach {
-        if (it.name.replace("-", "").toLowerCase() == artifact.toString().replace("-",
-                "").toLowerCase()) {
-          copyTarget = it.absolutePath
-        }
-      }
-      if (copyTarget.isEmpty()) {
-        SomeUtils.logYellow("找不到aar文件1: ${artifact.file.absolutePath}")
-      }
-    }
-    return copyTarget
   }
 
   /**
@@ -380,7 +377,7 @@ internal class VariantProcessor(
   private fun processJniLibs() {
     val taskPath = "merge" + mVariant.name.capitalize() + "JniLibFolders"
     val mergeJniLibsTask = mProject.tasks.findByPath(taskPath) ?: throw RuntimeException(
-        "Can not find task ${taskPath}!")
+        "Can not find task $taskPath!")
 
     mergeJniLibsTask.doFirst {
       for (archiveLibrary in mAndroidArchiveLibraries) {
