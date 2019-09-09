@@ -2,9 +2,7 @@ package com.tangnb.superaar
 
 import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
-import com.android.build.gradle.api.BaseVariantOutput
 import com.android.build.gradle.api.LibraryVariant
-import org.codehaus.groovy.runtime.DefaultGroovyMethods
 import org.codehaus.groovy.runtime.StringGroovyMethods
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -67,7 +65,7 @@ class RProcessor(
     mAarUnZipDir = mJarDir.parentFile
     // aar output dir
     mAarOutputDir = mProject.file(mProject.buildDir.toString() + "/outputs/aar/")
-    mAarOutputPath =mVariant.outputs.first().outputFile
+    mAarOutputPath = mVariant.outputs.first().outputFile
         .absolutePath
   }
 
@@ -192,7 +190,7 @@ class RProcessor(
       SomeUtils.logInfo("Compile R.class, Dir:${sourceDir.path}")
       SomeUtils.logInfo("Compile R.class, classpath:${classpath.first().absolutePath}")
 
-      if (SomeUtils.compareVersion(mGradlePluginVersion, "3.3.0") >= 0) {
+      if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.3.0")) {
         mProject.copy {
           it.from(mProject.zipTree(mVersionAdapter.rClassPath.first().absolutePath + "/R.jar"))
           it.into(mVersionAdapter.rClassPath.first().absolutePath)

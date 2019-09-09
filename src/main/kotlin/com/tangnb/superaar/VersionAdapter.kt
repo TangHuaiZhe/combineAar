@@ -21,10 +21,10 @@ class VersionAdapter(
     get() {
 
       return when {
-        SomeUtils.compareVersion(mGradlePluginVersion, "3.5.0") >= 0 ->
+        mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.5.0") ->
           mProject.files(mProject.buildDir.path + "/intermediates/"
               .plus("javac/" + mVariant.name + "/classes"))
-        SomeUtils.compareVersion(mGradlePluginVersion, "3.2.0") >= 0 ->
+        mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.2.0") ->
           mProject.files(mProject.buildDir.path + "/intermediates/".plus(
               "javac/" + mVariant.name + "/compile" + mVariant.name.capitalize() +
                   "JavaWithJavac/classes"))
@@ -49,7 +49,7 @@ class VersionAdapter(
     }
 
   val libsDirFile: File
-    get() = if (SomeUtils.compareVersion(mGradlePluginVersion, "3.1.0") >= 0) {
+    get() = if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.1.0")) {
       mProject.file(
           mProject.buildDir.path + "/intermediates/packaged-classes/" + mVariant
               .dirName + "/libs")
@@ -60,28 +60,28 @@ class VersionAdapter(
     }
 
   val javaCompileTask: Task
-    get() = if (SomeUtils.compareVersion(mGradlePluginVersion, "3.3.0") >= 0) {
+    get() = if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.3.0")) {
       mVariant.javaCompileProvider.get()
     } else {
       mVariant.javaCompiler
     }
 
   val processManifest: ManifestProcessorTask
-    get() = if (SomeUtils.compareVersion(mGradlePluginVersion, "3.3.0") >= 0) {
+    get() = if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.3.0")) {
       mVariant.outputs.first().processManifestProvider.get()
     } else {
       mVariant.outputs.first().processManifest
     }
 
   val mergeAssets: Task
-    get() = if (SomeUtils.compareVersion(mGradlePluginVersion, "3.3.0") >= 0) {
+    get() = if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.3.0")) {
       mVariant.mergeAssetsProvider.get()
     } else {
       mVariant.mergeAssets
     }
 
   val symbolFile: File
-    get() = if (SomeUtils.compareVersion(mGradlePluginVersion, "3.1.0") >= 0) {
+    get() = if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.1.0")) {
       mProject.file(
           mProject.buildDir.path + "/intermediates/symbols/" + mVariant.dirName
               + "/R.txt")

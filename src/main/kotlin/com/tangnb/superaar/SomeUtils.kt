@@ -13,6 +13,7 @@ object SomeUtils {
   private var mProjectRef: WeakReference<Project>? = null
 
   private const val ANSI_RESET = "\u001B[0m"
+  private const val ANSI_RED = "\u001B[31m"
   private const val ANSI_GREEN = "\u001B[32m"
   private const val ANSI_YELLOW = "\u001B[33m"
   private const val ANSI_BLUE = "\u001B[34m"
@@ -39,14 +40,12 @@ object SomeUtils {
 
   @JvmStatic
   fun logError(msg: Any) {
-    val p: Project? = mProjectRef!!.get()
-    p?.logger?.error("[fat-aar]$msg")
+    println(ANSI_RED + msg + ANSI_RESET)
   }
 
   @JvmStatic
   fun logInfo(msg: String) {
-    val p: Project? = mProjectRef!!.get()
-    p?.logger?.info("[fat-aar]$msg")
+    println(msg)
   }
 
   @JvmStatic

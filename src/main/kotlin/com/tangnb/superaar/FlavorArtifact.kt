@@ -88,9 +88,8 @@ object FlavorArtifact {
     val buildPath = project.buildDir.path
 //    val outputName = if (project.gradle.gradleVersion.gradleVersionBiggerOrEqualThan("5.1.0") && version.gradleVersionBiggerOrEqualThan("3.4.0")
 
-
-    val outputName = if (SomeUtils.compareVersion(project.gradle.gradleVersion,
-            "5.1.0") >= 0 && SomeUtils.compareVersion(version, "3.4") < 0) {
+    val outputName = if (project.gradle.gradleVersion.gradleVersionBiggerOrEqualThan("5.1.0")
+        && version.gradleVersionLitterThan("3.4")) {
       buildPath + "/outputs/aar/" + unResolvedArtifact.moduleName + ".aar"
     } else {
       buildPath + "/outputs/aar/" + unResolvedArtifact.moduleName + "-" + variant

@@ -52,6 +52,10 @@ object ExplodedHelper {
     }
   }
 
+  /**
+   * 复制embed的class.jar 解压为class之后到壳工程build-class目录下
+   * xxx/build/intermediates/javac/WKDevDebug/classes
+   */
   fun processClassesJarInfoClasses(
       project: Project,
       androidLibraries: Collection<AndroidArchiveLibrary>, folderOut: File
@@ -63,12 +67,22 @@ object ExplodedHelper {
         SomeUtils.logInfo("[warning]" + androidLibrary.rootFolder + " not found!")
         continue
       }
-
+      SomeUtils.logGreen(
+          "processClassesJarInfoClasses androidLibrary.classesJarFile is ${androidLibrary.classesJarFile.absolutePath}")
       allJarFiles.add(androidLibrary.classesJarFile)
     }
+    //copy
+    copyJarsToMainClassDir(allJarFiles, project, folderOut)
+  }
 
+  private fun copyJarsToMainClassDir(
+      allJarFiles: ArrayList<File>,
+      project: Project,
+      folderOut: File
+  ) {
     for (jarFile in allJarFiles) {
       project.copy {
+        SomeUtils.logBlue("copy from ${jarFile.absolutePath} to ${folderOut.absolutePath}")
         it.from(project.zipTree(jarFile))
         it.into(folderOut)
         it.exclude("META-INF/")

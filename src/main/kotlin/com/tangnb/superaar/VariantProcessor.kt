@@ -11,7 +11,6 @@ import org.gradle.api.internal.artifacts.DefaultResolvedArtifact
 import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskDependency
 import java.io.File
-import kotlin.collections.ArrayList
 
 @SuppressLint("DefaultLocale")
 internal class VariantProcessor(
@@ -122,7 +121,7 @@ internal class VariantProcessor(
   }
 
   private fun processCache() {
-    if (SomeUtils.compareVersion(mGradlePluginVersion, "3.5.0") >= 0) {
+    if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.5.0")) {
       mVersionAdapter.libsDirFile.delete()
       mVersionAdapter.classPathDirFiles.first().delete()
     }
@@ -169,7 +168,7 @@ internal class VariantProcessor(
           val path = artifact.file.absolutePath.substringBeforeLast("/")
           File(path).walk().filter { it.isFile }.forEach {
             if (it.name.replace("-", "").toLowerCase() == artifact.toString().replace("-",
-                            "").toLowerCase()) {
+                    "").toLowerCase()) {
               copyTarget = it.absolutePath
             }
           }
@@ -211,8 +210,8 @@ internal class VariantProcessor(
     val processManifestTask = mVersionAdapter.processManifest
     val manifestOutputBackup: File
     manifestOutputBackup =
-        if (mGradlePluginVersion.isNotEmpty() && SomeUtils.compareVersion(mGradlePluginVersion,
-                "3.3.0") >= 0) {
+        if (mGradlePluginVersion.isNotEmpty() && mGradlePluginVersion.gradleVersionBiggerOrEqualThan(
+                "3.3.0")) {
           mProject.file(
               "${mProject.buildDir.path}/intermediates/library_manifest/${mVariant.name}/AndroidManifest.xml")
         } else {
@@ -280,18 +279,7 @@ internal class VariantProcessor(
    */
   private fun processClassesAndJars(bundleTask: Task) {
     val isMinifyEnabled = mVariant.buildType.isMinifyEnabled
-    if (isMinifyEnabled) {
-      //merge proguard file
-      for (archiveLibrary in mAndroidArchiveLibraries) {
-        val thirdProguardFiles = archiveLibrary.proguardRules
-        for (file in thirdProguardFiles) {
-          if (file.exists()) {
-            SomeUtils.logInfo("add proguard file: " + file.absolutePath)
-            android.defaultConfig.proguardFile(file)
-          }
-        }
-      }
-    }
+    dealMinify(isMinifyEnabled)
 
     val taskPath = "transformClassesAndResourcesWithSyncLibJarsFor" + mVariant.name.capitalize()
     val syncLibTask = mProject.tasks.findByPath(taskPath) ?: throw RuntimeException(
@@ -313,6 +301,21 @@ internal class VariantProcessor(
         mergeJars.dependsOn(it)
       }
       mergeJars.dependsOn(javacTask)
+    }
+  }
+
+  private fun dealMinify(isMinifyEnabled: Boolean) {
+    if (isMinifyEnabled) {
+      //merge proguard file
+      for (archiveLibrary in mAndroidArchiveLibraries) {
+        val thirdProguardFiles = archiveLibrary.proguardRules
+        for (file in thirdProguardFiles) {
+          if (file.exists()) {
+            SomeUtils.logInfo("add proguard file: " + file.absolutePath)
+            android.defaultConfig.proguardFile(file)
+          }
+        }
+      }
     }
   }
 

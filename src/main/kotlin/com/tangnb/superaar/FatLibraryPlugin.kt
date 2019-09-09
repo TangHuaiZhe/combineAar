@@ -2,7 +2,6 @@ package com.tangnb.superaar
 
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.LibraryVariant
-import groovy.lang.Reference
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
@@ -31,6 +30,7 @@ class FatLibraryPlugin : Plugin<Project> {
       resolveArtifacts()
       dealUnResolveArtifacts()
       val android = project.extensions.getByName("android") as LibraryExtension
+      var taskFounded = false
       android.libraryVariants.filter {
         val currentFlavor = it.flavorName + it.buildType.name.capitalize()
         // WKDevDebug
@@ -42,7 +42,11 @@ class FatLibraryPlugin : Plugin<Project> {
         project.gradle.startParameter.taskNames.isNotEmpty() && project.gradle.startParameter.taskNames.first().contains(currentFlavor, true)
       }.forEach {
         SomeUtils.logBlue("start process: ${it.flavorName}${it.buildType.name.capitalize()}")
+        taskFounded = true
         processVariant(it)
+      }
+      if (!taskFounded){
+        SomeUtils.logYellow("FatLibraryPlugin ${project.gradle.startParameter.taskNames.first()} not found")
       }
     }
   }
@@ -127,13 +131,7 @@ class FatLibraryPlugin : Plugin<Project> {
   }
 
   companion object {
-
     const val ARTIFACT_TYPE_AAR = "aar"
     const val ARTIFACT_TYPE_JAR = "jar"
-
-    private fun <T> setGroovyRef(ref: Reference<T>, newValue: T): T {
-      ref.set(newValue)
-      return newValue
-    }
   }
 }
