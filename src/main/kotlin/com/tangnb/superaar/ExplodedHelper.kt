@@ -5,86 +5,109 @@ import java.io.File
 import java.util.*
 
 /**
- * process jars and classes Created by Vigi on 2017/1/20. Modified by kezong on 2018/12/18
+ * process jars and classes
  */
 object ExplodedHelper {
 
+  /**
+   *  将androidLibraries中的jar文件 复制到主工程的libs目录下
+   *
+   *  将jarFiles(java工程生成的jar包) 复制到主工程的libs目录下
+   */
   fun processLibsIntoLibs(
       project: Project,
-      androidLibraries: Collection<AndroidArchiveLibrary>, jarFiles: Collection<File>,
-      folderOut: File
+      androidLibraries: Collection<AarLib>, jarFiles: Collection<File>,
+      mainLibsDir: File
+  ) {
+
+    copyAndroidLibJarToMainLibs(androidLibraries, project, mainLibsDir)
+
+    copyJarFilesToMainLibs(jarFiles, mainLibsDir, project)
+  }
+
+  private fun copyJarFilesToMainLibs(
+      jarFiles: Collection<File>,
+      libsDir: File,
+      project: Project
+  ) {
+    for (jarFile in jarFiles) {
+      if (!jarFile.exists()) {
+        LogUtil.info("[warning]$jarFile not found!")
+        continue
+      }
+
+      LogUtil.info("copy jar from: " + jarFile + " to " + libsDir.absolutePath)
+
+      project.copy {
+        it.from(jarFile)
+        it.into(libsDir)
+      }
+    }
+  }
+
+  private fun copyAndroidLibJarToMainLibs(
+      androidLibraries: Collection<AarLib>,
+      project: Project,
+      libsDir: File
   ) {
     for (androidLibrary in androidLibraries) {
       if (!androidLibrary.rootFolder.exists()) {
-        SomeUtils.logInfo("[warning]" + androidLibrary.rootFolder + " not found!")
+        LogUtil.info("[warning]" + androidLibrary.rootFolder + " not found!")
         continue
       }
 
       if (androidLibrary.localJars.isEmpty()) {
-        SomeUtils.logInfo("Not found jar file, Library:" + androidLibrary.name)
+        LogUtil.info("Not found jar file, Library:" + androidLibrary.name)
       } else {
-        SomeUtils.logInfo(
+        LogUtil.info(
             "Merge " + androidLibrary.name + " jar file, Library:" + androidLibrary.name)
       }
 
       androidLibrary.localJars.forEach {
-        SomeUtils.logInfo(it.path)
+        LogUtil.info(it.path)
       }
 
       project.copy {
         it.from(androidLibrary.localJars)
-        it.into(folderOut)
-      }
-    }
-
-    for (jarFile in jarFiles) {
-      if (!jarFile.exists()) {
-        SomeUtils.logInfo("[warning]$jarFile not found!")
-        continue
-      }
-
-      SomeUtils.logInfo("copy jar from: " + jarFile + " to " + folderOut.absolutePath)
-
-      project.copy {
-        it.from(jarFile)
-        it.into(folderOut)
+        it.into(libsDir)
       }
     }
   }
 
   /**
-   * 复制embed的class.jar 解压为class之后到壳工程build-class目录下
-   * xxx/build/intermediates/javac/WKDevDebug/classes
+   * 将embed工程的class.jar 解压为class文件之后 整体复制到壳工程buildInterClassPathDir目录下
+   * 如:xxx/build/intermediates/javac/WKDevDebug/classes
    */
   fun processClassesJarInfoClasses(
       project: Project,
-      androidLibraries: Collection<AndroidArchiveLibrary>, folderOut: File
+      androidLibraries: Collection<AarLib>, buildInterClassPathDir: File
   ) {
-    SomeUtils.logInfo("Merge ClassesJar")
+    LogUtil.info("Merge ClassesJar")
     val allJarFiles = ArrayList<File>()
     for (androidLibrary in androidLibraries) {
       if (!androidLibrary.rootFolder.exists()) {
-        SomeUtils.logInfo("[warning]" + androidLibrary.rootFolder + " not found!")
+        LogUtil.yellow("[warning]" + androidLibrary.rootFolder + " not found!")
         continue
       }
-      SomeUtils.logGreen(
+      LogUtil.green(
           "processClassesJarInfoClasses androidLibrary.classesJarFile is ${androidLibrary.classesJarFile.absolutePath}")
       allJarFiles.add(androidLibrary.classesJarFile)
     }
-    //copy
-    copyJarsToMainClassDir(allJarFiles, project, folderOut)
+    copyClassesToMainBuildInterClassDir(project, allJarFiles, buildInterClassPathDir)
   }
 
-  private fun copyJarsToMainClassDir(
-      allJarFiles: ArrayList<File>,
+  private fun copyClassesToMainBuildInterClassDir(
       project: Project,
-      folderOut: File
+      allJarFiles: ArrayList<File>,
+      buildInterClassPathDir: File
   ) {
     for (jarFile in allJarFiles) {
       project.copy {
-        SomeUtils.logBlue("copy from ${jarFile.absolutePath} to ${folderOut.absolutePath}")
+        LogUtil.blue(
+            "copy from ${jarFile.absolutePath} to ${buildInterClassPathDir.absolutePath}")
+        //jar包解压为class文件 在复制过去
         it.from(project.zipTree(jarFile))
-        it.into(folderOut)
+        it.into(buildInterClassPathDir)
         it.exclude("META-INF/")
       }
     }
@@ -92,18 +115,18 @@ object ExplodedHelper {
 
   fun processLibsIntoClasses(
       project: Project,
-      androidLibraries: Collection<AndroidArchiveLibrary>, jarFiles: Collection<File>,
+      androidLibraries: Collection<AarLib>, jarFiles: Collection<File>,
       folderOut: File
   ) {
-    SomeUtils.logInfo("Merge Libs")
+    LogUtil.info("Merge Libs")
     val allJarFiles = ArrayList<File>()
     for (androidLibrary in androidLibraries) {
       if (!androidLibrary.rootFolder.exists()) {
-        SomeUtils.logInfo("[warning]" + androidLibrary.rootFolder + " not found!")
+        LogUtil.info("[warning]" + androidLibrary.rootFolder + " not found!")
         continue
       }
 
-      SomeUtils.logInfo("[androidLibrary]" + androidLibrary.name)
+      LogUtil.info("[androidLibrary]" + androidLibrary.name)
       allJarFiles.addAll(androidLibrary.localJars)
     }
 

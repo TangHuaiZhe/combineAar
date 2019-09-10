@@ -80,6 +80,9 @@ class VersionAdapter(
       mVariant.mergeAssets
     }
 
+  /**
+   * R.txt文件
+   */
   val symbolFile: File
     get() = if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan("3.1.0")) {
       mProject.file(

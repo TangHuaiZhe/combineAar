@@ -20,7 +20,7 @@ internal class VariantProcessor(
 
   private val mResolvedArtifacts = ArrayList<DefaultResolvedArtifact>()
 
-  private val mAndroidArchiveLibraries = ArrayList<AndroidArchiveLibrary>()//项目aar list
+  private val mAndroidArchiveLibraries = ArrayList<AarLib>()//项目aar list
 
   private val mJarFiles = ArrayList<File>()
 
@@ -36,7 +36,7 @@ internal class VariantProcessor(
     // gradle version
     mProject.rootProject.buildscript.configurations.getByName("classpath")
         .dependencies.forEach { dep ->
-      SomeUtils.logBlue("${dep.group} ${dep.name} ${dep.version}")
+      LogUtil.blue("${dep.group} ${dep.name} ${dep.version}")
       if (dep.group == "com.android.tools.build" && dep.name == "gradle") {
         mGradlePluginVersion = dep.version!!
       }
@@ -51,11 +51,11 @@ internal class VariantProcessor(
   fun addArtifacts(resolvedArtifacts: Set<DefaultResolvedArtifact>) {
     mResolvedArtifacts.addAll(resolvedArtifacts)
     resolvedArtifacts.forEach {
-      SomeUtils.logGreen("addArtifacts $it")
+      LogUtil.green("addArtifacts $it")
     }
   }
 
-  private fun addAndroidArchiveLibrary(library: AndroidArchiveLibrary) {
+  private fun addAndroidArchiveLibrary(library: AarLib) {
     mAndroidArchiveLibraries.add(library)
   }
 
@@ -63,7 +63,7 @@ internal class VariantProcessor(
     dependencies?.forEach {
       val artifact =
           FlavorArtifact.createFlavorArtifact(mProject, mVariant, it, mGradlePluginVersion)
-      SomeUtils.logGreen("addUnResolveArtifact $artifact")
+      LogUtil.green("addUnResolveArtifact $artifact")
       mResolvedArtifacts.add(artifact)
     }
   }
@@ -132,18 +132,18 @@ internal class VariantProcessor(
    */
   private fun processArtifacts(prepareTask: Task, bundleTask: Task) {
     for (artifact in mResolvedArtifacts) {
-      SomeUtils.logGreen("processArtifacts $artifact")
+      LogUtil.green("processArtifacts $artifact")
       if (FatLibraryPlugin.ARTIFACT_TYPE_JAR == artifact.type) {
         addJarFile(artifact.file)
       } else if (FatLibraryPlugin.ARTIFACT_TYPE_AAR == artifact.type) {
         //artifact:BaseCommon-WKPre-debug.aar
-        val archiveLibrary = AndroidArchiveLibrary(mProject, artifact, mVariant.name)
+        val archiveLibrary = AarLib(mProject, artifact, mVariant.name)
         addAndroidArchiveLibrary(archiveLibrary)
         //todo 找到当前任务的依赖task
         val buildDependencies =
             artifact.getBuildDependencies().getDependencies(null)
         for (dep in buildDependencies) {
-          SomeUtils.logGreen("$artifact dep is $dep")
+          LogUtil.green("$artifact dep is $dep")
         }
         archiveLibrary.rootFolder.delete()
 
@@ -155,7 +155,7 @@ internal class VariantProcessor(
         val taskName = "explode$group$name${mVariant.name.capitalize()}"
 
         val explodeTask = mProject.tasks.create(taskName) {
-          println("explodeTask Hello, World!")
+          println("explodeTask $taskName")
         }.dependsOn(buildDependencies.first()).mustRunAfter(buildDependencies.first())
         buildDependencies.first().finalizedBy(explodeTask)
 
@@ -163,7 +163,7 @@ internal class VariantProcessor(
 
         var copyTarget = ""
         explodeTask.doFirst {
-          SomeUtils.logGreen("explodeTask doFirst")
+          LogUtil.green("explodeTask doFirst")
           //todo 找到编译出来的module的aar
           val path = artifact.file.absolutePath.substringBeforeLast("/")
           File(path).walk().filter { it.isFile }.forEach {
@@ -173,18 +173,18 @@ internal class VariantProcessor(
             }
           }
           if (copyTarget.isEmpty()) {
-            SomeUtils.logYellow("找不到aar文件1: ${artifact.file.absolutePath}")
+            LogUtil.yellow("找不到aar文件1: ${artifact.file.absolutePath}")
           }
         }
 
         explodeTask.doLast {
-          SomeUtils.logGreen("explodeTask doLast")
+          LogUtil.green("explodeTask doLast")
           // 复制操作
           if (File(copyTarget).exists()) {
             copyAar(mProject.zipTree(copyTarget), zipFolder)
-            SomeUtils.logGreen("复制完成: ${artifact.file.absolutePath}")
+            LogUtil.green("复制完成: ${artifact.file.absolutePath}")
           } else {
-            SomeUtils.logYellow("找不到aar文件2: ${artifact.file.absolutePath}")
+            LogUtil.yellow("找不到aar文件2: ${artifact.file.absolutePath}")
           }
         }
 
@@ -192,7 +192,7 @@ internal class VariantProcessor(
 //          explodeTask.dependsOn(prepareTask)
 //        }
 //        else {
-//          SomeUtils.logGreen("$explodeTask dependsOn ${buildDependencies.first()}")
+//          SomeUtils.green("$explodeTask dependsOn ${buildDependencies.first()}")
 //          explodeTask.dependsOn(buildDependencies.first())
 //        }
         val javacTask = mVersionAdapter.javaCompileTask
@@ -210,7 +210,7 @@ internal class VariantProcessor(
     val processManifestTask = mVersionAdapter.processManifest
     val manifestOutputBackup: File
     manifestOutputBackup =
-        if (mGradlePluginVersion.isNotEmpty() && mGradlePluginVersion.gradleVersionBiggerOrEqualThan(
+        if (mGradlePluginVersion.gradleVersionBiggerOrEqualThan(
                 "3.3.0")) {
           mProject.file(
               "${mProject.buildDir.path}/intermediates/library_manifest/${mVariant.name}/AndroidManifest.xml")
@@ -292,6 +292,7 @@ internal class VariantProcessor(
       mergeClasses.dependsOn(it)
     }
     mergeClasses.dependsOn(javacTask)
+    bundleTask.dependsOn(mergeClasses)//修复多个embed丢失的代码问题
 
     if (!isMinifyEnabled) {
       val mergeJars = handleJarMergeTask()
@@ -311,7 +312,7 @@ internal class VariantProcessor(
         val thirdProguardFiles = archiveLibrary.proguardRules
         for (file in thirdProguardFiles) {
           if (file.exists()) {
-            SomeUtils.logInfo("add proguard file: " + file.absolutePath)
+            LogUtil.info("add proguard file: " + file.absolutePath)
             android.defaultConfig.proguardFile(file)
           }
         }
@@ -335,10 +336,10 @@ internal class VariantProcessor(
 
     resourceGenTask.doFirst {
       for (archiveLibrary in mAndroidArchiveLibraries) {
-        android.sourceSets.forEach {
-          if (it.name == mVariant.name) {
-            SomeUtils.logInfo("Merge resource，Library res：${archiveLibrary.resFolder}")
-            it.res.srcDir(archiveLibrary.resFolder)
+        android.sourceSets.forEach { androidSourceSet ->
+          if (androidSourceSet.name == mVariant.name) {
+            LogUtil.green("Merge resource，Library res：${archiveLibrary.resFolder}")
+            androidSourceSet.res.srcDir(archiveLibrary.resFolder)
           }
         }
       }
@@ -410,7 +411,7 @@ internal class VariantProcessor(
       val thirdProguardFiles = archiveLibrary.proguardRules
       for (file in thirdProguardFiles) {
         if (file.exists()) {
-          SomeUtils.logInfo("add proguard file: " + file.absolutePath)
+          LogUtil.info("add proguard file: " + file.absolutePath)
           mergeFileTask.inputs.file(file)
         }
       }
@@ -421,7 +422,7 @@ internal class VariantProcessor(
         val thirdProguardFiles = archiveLibrary.proguardRules
         for (file in thirdProguardFiles) {
           if (file.exists()) {
-            SomeUtils.logInfo("add proguard file: " + file.absolutePath)
+            LogUtil.info("add proguard file: " + file.absolutePath)
             proguardFiles.plus(file)
           }
         }
@@ -441,7 +442,7 @@ internal class VariantProcessor(
   @TaskAction
   fun copyAar(from: Any, destDir: Any) {
     mProject.copy { copySpec ->
-      SomeUtils.logGreen(" === copyAar from $from \n to $destDir===")
+      LogUtil.green(" === copyAar from $from \n to $destDir===")
       copySpec.from(from)
       copySpec.into(destDir)
     }

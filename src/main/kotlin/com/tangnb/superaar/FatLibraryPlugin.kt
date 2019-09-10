@@ -1,5 +1,6 @@
 package com.tangnb.superaar
 
+import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.LibraryVariant
 import org.gradle.api.Plugin
@@ -12,6 +13,7 @@ import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.api.internal.artifacts.DefaultResolvedArtifact
 import java.util.*
 
+@SuppressLint("DefaultLocale")
 class FatLibraryPlugin : Plugin<Project> {
 
   private lateinit var project: Project
@@ -23,30 +25,35 @@ class FatLibraryPlugin : Plugin<Project> {
     println("this is combineAar ,dealing with " + project
         .name)
     this.project = project
-    SomeUtils.setProject(project)
+
     checkAndroidPlugin()
+
     createConfiguration()
+
     project.afterEvaluate {
+
       resolveArtifacts()
+
       dealUnResolveArtifacts()
+
       val android = project.extensions.getByName("android") as LibraryExtension
       var taskFounded = false
-      android.libraryVariants.filter {
-        val currentFlavor = it.flavorName + it.buildType.name.capitalize()
-        // WKDevDebug
-//        SomeUtils.logGreen("variant FlavorName+BuildType: $currentFlavor")
 
-        // taskNames: assembleWkDevDebug
-//        SomeUtils.logGreen(
-//            "variant taskNames: ${gradle.startParameter.taskNames.first().substringAfter(":")}")
-        project.gradle.startParameter.taskNames.isNotEmpty() && project.gradle.startParameter.taskNames.first().contains(currentFlavor, true)
+      android.libraryVariants.filter {
+        // 过滤掉不需要的task
+        val currentFlavor = it.flavorName + it.buildType.name.capitalize()
+        project.gradle.startParameter.taskNames.isNotEmpty() && project.gradle.startParameter.taskNames.first().contains(
+            currentFlavor, true)
       }.forEach {
-        SomeUtils.logBlue("start process: ${it.flavorName}${it.buildType.name.capitalize()}")
+        // 开始处理
+        LogUtil.blue("start process: ${it.flavorName}${it.buildType.name.capitalize()}")
         taskFounded = true
         processVariant(it)
       }
-      if (!taskFounded){
-        SomeUtils.logYellow("FatLibraryPlugin ${project.gradle.startParameter.taskNames.first()} not found")
+
+      if (!taskFounded && project.gradle.startParameter.taskNames.isNotEmpty()) {
+        LogUtil.yellow(
+            "FatLibraryPlugin ${project.gradle.startParameter.taskNames.first()} not found")
       }
     }
   }
@@ -59,7 +66,7 @@ class FatLibraryPlugin : Plugin<Project> {
   }
 
   private fun createConfiguration() {
-    embedConf = project.configurations.create("embed")
+    embedConf = project.configurations.create("embed").extendsFrom()
     embedConf.isVisible = true
     embedConf.isTransitive = false
 
@@ -68,44 +75,48 @@ class FatLibraryPlugin : Plugin<Project> {
       override fun beforeResolve(resolvableDependencies: ResolvableDependencies) {
         embedConf.dependencies.forEach { dependency ->
           project.dependencies.add("compileOnly", dependency)
-          SomeUtils.logBlue("beforeResolve, add dependencies:$dependency")
+          LogUtil.blue("beforeResolve, add dependencies:$dependency")
         }
         project.gradle.removeListener(this)
       }
 
       override fun afterResolve(resolvableDependencies: ResolvableDependencies) {
-        SomeUtils.logBlue("afterResolve resolvableDependencies:$resolvableDependencies")
+        LogUtil.blue("afterResolve resolvableDependencies:$resolvableDependencies")
       }
     })
   }
 
   private fun resolveArtifacts() {
-    val set = HashSet<DefaultResolvedArtifact>()
+    val resolvedArtifactSet = HashSet<DefaultResolvedArtifact>()
     embedConf.resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
+      LogUtil.green("embedConf.resolvedConfiguration.resolvedArtifacts is $artifact")
       // jar file wouldn't be here
       if (ARTIFACT_TYPE_AAR == artifact.type || ARTIFACT_TYPE_JAR == artifact.type) {
-        SomeUtils.logAnytime("[embed detected][${artifact.type}] ${artifact.moduleVersion.id}")
+        LogUtil.green("[embed detected][${artifact.type}] ${artifact.moduleVersion.id}")
       } else {
         throw ProjectConfigurationException("Only support embed aar and jar dependencies!",
             Throwable())
       }
-      set.add(artifact as DefaultResolvedArtifact)
+      resolvedArtifactSet.add(artifact as DefaultResolvedArtifact)
     }
-    artifacts = Collections.unmodifiableSet(set)
+    artifacts = Collections.unmodifiableSet(resolvedArtifactSet)
   }
 
+  /**
+   * 开始处理当前variant
+   */
   private fun processVariant(variant: LibraryVariant) {
-    SomeUtils.logGreen("processVariant ${variant.flavorName}")
+    LogUtil.green("processVariant ${variant.flavorName}")
+
     val processor = VariantProcessor(project, variant)
 
     //todo artifacts列表为空 如何处理
-    if(artifacts != null){
+    if (artifacts != null && artifacts!!.isNotEmpty()) {
       processor.addArtifacts(artifacts!!)
-      SomeUtils.logGreen("processor.addArtifacts $artifacts")
-    }else{
-      SomeUtils.logGreen("processor.addArtifacts failed,artifacts == null")
+      LogUtil.green("processor.addArtifacts $artifacts")
+    } else {
+      LogUtil.green("processor.addArtifacts failed,artifacts == null")
     }
-//    artifacts?.let { processor.addArtifacts(it) }
     processor.addUnResolveArtifact(unResolveArtifact)
     processor.processVariant()
   }
@@ -123,7 +134,7 @@ class FatLibraryPlugin : Plugin<Project> {
         }
       }
       if (!match) {
-        SomeUtils.logAnytime("[unResolve dependency detected][ + ${dependency.name} + ]")
+        LogUtil.yellow("[unResolve dependency detected][ + ${dependency.name} + ]")
         dependencySet.add(dependency)
       }
     }

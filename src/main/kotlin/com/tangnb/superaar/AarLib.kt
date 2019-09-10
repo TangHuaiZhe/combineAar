@@ -6,7 +6,10 @@ import java.io.File
 import java.util.*
 import javax.xml.parsers.DocumentBuilderFactory
 
-class AndroidArchiveLibrary(
+/**
+ * android aar
+ */
+class AarLib(
     private val mProject: Project,
     private val mArtifact: ResolvedArtifact,
     private val mVariantName: String
@@ -98,7 +101,6 @@ class AndroidArchiveLibrary(
         } catch (e: Exception) {
           e.printStackTrace()
         }
-
       } else {
         throw RuntimeException("$name module's AndroidManifest not found")
       }
