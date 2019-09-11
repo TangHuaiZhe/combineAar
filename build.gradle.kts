@@ -10,10 +10,12 @@ plugins {
 }
 
 group = "com.tangnb.plugin"
-version = "1.0.1-SNAPSHOT"
+version = "1.0.2-SNAPSHOT"
 
 repositories {
   jcenter()
+  google()
+  maven { url = uri("https://plugins.gradle.org/m2/") }
 }
 
 dependencies {
