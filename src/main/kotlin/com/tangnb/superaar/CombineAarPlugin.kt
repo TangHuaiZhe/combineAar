@@ -14,7 +14,7 @@ import org.gradle.api.internal.artifacts.DefaultResolvedArtifact
 import java.util.*
 
 @SuppressLint("DefaultLocale")
-class FatLibraryPlugin : Plugin<Project> {
+class CombineAarPlugin : Plugin<Project> {
 
   private lateinit var mProject: Project
   private lateinit var embedConf: Configuration
@@ -73,7 +73,7 @@ class FatLibraryPlugin : Plugin<Project> {
   private fun checkAndroidPlugin() {
     if (!mProject.plugins.hasPlugin("com.android.library")) {
       throw ProjectConfigurationException(
-          "fat-aar-plugin must be applied in mProject that has android library plugin!",
+          "combnine-aar-plugin must be applied in mProject that has android library plugin!",
           Throwable())
     }
   }

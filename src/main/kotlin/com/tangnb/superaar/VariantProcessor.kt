@@ -133,9 +133,9 @@ internal class VariantProcessor(
   private fun processArtifacts(prepareTask: Task, bundleTask: Task) {
     for (artifact in mResolvedArtifacts) {
       LogUtil.green("processArtifacts $artifact")
-      if (FatLibraryPlugin.ARTIFACT_TYPE_JAR == artifact.type) {
+      if (CombineAarPlugin.ARTIFACT_TYPE_JAR == artifact.type) {
         addJarFile(artifact.file)
-      } else if (FatLibraryPlugin.ARTIFACT_TYPE_AAR == artifact.type) {
+      } else if (CombineAarPlugin.ARTIFACT_TYPE_AAR == artifact.type) {
         //artifact:BaseCommon-WKPre-debug.aar
         val archiveLibrary = AarLib(mProject, artifact, mVariant.name)
         addAndroidArchiveLibrary(archiveLibrary)
