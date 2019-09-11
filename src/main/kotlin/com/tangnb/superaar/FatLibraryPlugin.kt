@@ -16,15 +16,27 @@ import java.util.*
 @SuppressLint("DefaultLocale")
 class FatLibraryPlugin : Plugin<Project> {
 
-  private lateinit var project: Project
+  private lateinit var mProject: Project
   private lateinit var embedConf: Configuration
+
+  // 本地aar和jar包的依赖
   private var artifacts: Set<DefaultResolvedArtifact>? = null
+  // project依赖
   private var unResolveArtifact: Set<ResolvedDependency>? = null
 
   override fun apply(project: Project) {
-    println("this is combineAar ,dealing with " + project
+
+    LogUtil.setDebug(true)
+
+    LogUtil.info("this is combineAar ,dealing with " + project
         .name)
-    this.project = project
+
+    val taskList = project.gradle.startParameter.taskNames
+    for (task in taskList) {
+      LogUtil.green("your are exe gradle task: $task")
+    }
+
+    this.mProject = project
 
     checkAndroidPlugin()
 
@@ -42,7 +54,7 @@ class FatLibraryPlugin : Plugin<Project> {
       android.libraryVariants.filter {
         // 过滤掉不需要的task
         val currentFlavor = it.flavorName + it.buildType.name.capitalize()
-        project.gradle.startParameter.taskNames.isNotEmpty() && project.gradle.startParameter.taskNames.first().contains(
+        taskList.isNotEmpty() && taskList.first().contains(
             currentFlavor, true)
       }.forEach {
         // 开始处理
@@ -51,33 +63,34 @@ class FatLibraryPlugin : Plugin<Project> {
         processVariant(it)
       }
 
-      if (!taskFounded && project.gradle.startParameter.taskNames.isNotEmpty()) {
+      if (!taskFounded && taskList.isNotEmpty()) {
         LogUtil.yellow(
-            "FatLibraryPlugin ${project.gradle.startParameter.taskNames.first()} not found")
+            "FatLibraryPlugin ${taskList.first()} not found")
       }
     }
   }
 
   private fun checkAndroidPlugin() {
-    if (!project.plugins.hasPlugin("com.android.library")) {
+    if (!mProject.plugins.hasPlugin("com.android.library")) {
       throw ProjectConfigurationException(
-          "fat-aar-plugin must be applied in project that has android library plugin!", Throwable())
+          "fat-aar-plugin must be applied in mProject that has android library plugin!",
+          Throwable())
     }
   }
 
   private fun createConfiguration() {
-    embedConf = project.configurations.create("embed").extendsFrom()
+    embedConf = mProject.configurations.create("embed").extendsFrom()
     embedConf.isVisible = true
     embedConf.isTransitive = false
 
-    project.gradle.addListener(object : DependencyResolutionListener {
+    mProject.gradle.addListener(object : DependencyResolutionListener {
 
       override fun beforeResolve(resolvableDependencies: ResolvableDependencies) {
         embedConf.dependencies.forEach { dependency ->
-          project.dependencies.add("compileOnly", dependency)
+          mProject.dependencies.add("compileOnly", dependency)
           LogUtil.blue("beforeResolve, add dependencies:$dependency")
         }
-        project.gradle.removeListener(this)
+        mProject.gradle.removeListener(this)
       }
 
       override fun afterResolve(resolvableDependencies: ResolvableDependencies) {
@@ -86,6 +99,9 @@ class FatLibraryPlugin : Plugin<Project> {
     })
   }
 
+  /**
+   * 处理本地embed aar和jar包
+   */
   private fun resolveArtifacts() {
     val resolvedArtifactSet = HashSet<DefaultResolvedArtifact>()
     embedConf.resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
@@ -108,14 +124,14 @@ class FatLibraryPlugin : Plugin<Project> {
   private fun processVariant(variant: LibraryVariant) {
     LogUtil.green("processVariant ${variant.flavorName}")
 
-    val processor = VariantProcessor(project, variant)
+    val processor = VariantProcessor(mProject, variant)
 
-    //todo artifacts列表为空 如何处理
+    //
     if (artifacts != null && artifacts!!.isNotEmpty()) {
       processor.addArtifacts(artifacts!!)
       LogUtil.green("processor.addArtifacts $artifacts")
     } else {
-      LogUtil.green("processor.addArtifacts failed,artifacts == null")
+      LogUtil.green("processor.addArtifact,but artifacts is empty")
     }
     processor.addUnResolveArtifact(unResolveArtifact)
     processor.processVariant()

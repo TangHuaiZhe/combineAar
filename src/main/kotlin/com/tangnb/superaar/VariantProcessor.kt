@@ -143,6 +143,7 @@ internal class VariantProcessor(
         val buildDependencies =
             artifact.getBuildDependencies().getDependencies(null)
         for (dep in buildDependencies) {
+          //BaseCommon-WKDev-debug.aar dep is task ':BaseCommon:bundleWKDevDebugAar'
           LogUtil.green("$artifact dep is $dep")
         }
         archiveLibrary.rootFolder.delete()

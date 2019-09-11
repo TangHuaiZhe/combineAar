@@ -1,5 +1,6 @@
 package com.tangnb.superaar
 
+import android.annotation.SuppressLint
 import com.android.build.gradle.api.LibraryVariant
 import groovy.lang.Reference
 import org.gradle.api.Project
@@ -16,6 +17,7 @@ import org.gradle.internal.component.model.DefaultIvyArtifactName
 import java.io.File
 import java.util.*
 
+@SuppressLint("DefaultLocale")
 object FlavorArtifact {
 
   fun createFlavorArtifact(

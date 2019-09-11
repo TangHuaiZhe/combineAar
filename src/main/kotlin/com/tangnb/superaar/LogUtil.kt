@@ -7,20 +7,31 @@ object LogUtil {
   private const val ANSI_GREEN = "\u001B[32m"
   private const val ANSI_YELLOW = "\u001B[33m"
   private const val ANSI_BLUE = "\u001B[34m"
+  private var isDebug = false
+
+  fun setDebug(debug: Boolean) {
+    this.isDebug = debug
+  }
 
   @JvmStatic
   fun green(text: String) {
-    println(ANSI_GREEN + text + ANSI_RESET)
+    if (isDebug) {
+      println(ANSI_GREEN + text + ANSI_RESET)
+    }
   }
 
   @JvmStatic
   fun yellow(text: String) {
-    println(ANSI_YELLOW + text + ANSI_RESET)
+    if (isDebug) {
+      println(ANSI_YELLOW + text + ANSI_RESET)
+    }
   }
 
   @JvmStatic
   fun blue(text: String) {
-    println(ANSI_BLUE + text + ANSI_RESET)
+    if (isDebug) {
+      println(ANSI_BLUE + text + ANSI_RESET)
+    }
   }
 
   @JvmStatic
@@ -30,7 +41,9 @@ object LogUtil {
 
   @JvmStatic
   fun info(msg: String) {
-    println(msg)
+    if (isDebug) {
+      println(msg)
+    }
   }
 }
 
