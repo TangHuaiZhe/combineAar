@@ -156,11 +156,15 @@ internal class VariantProcessor(
         val taskName = "explode$group$name${mVariant.name.capitalize()}"
 
         val explodeTask = mProject.tasks.create(taskName) {
-          println("explodeTask $taskName")
-        }.dependsOn(buildDependencies.first()).mustRunAfter(buildDependencies.first())
-        buildDependencies.first().finalizedBy(explodeTask)
+          println("prepare explodeTask $taskName")
+        }
 
-//        val copyTarget = findAarPath(explodeTask, artifact)
+        if (buildDependencies.size == 0) {
+          explodeTask.dependsOn(prepareTask)
+        }else {
+          explodeTask.dependsOn(buildDependencies.first()).mustRunAfter(buildDependencies.first())
+          buildDependencies.first().finalizedBy(explodeTask)
+        }
 
         var copyTarget = ""
         explodeTask.doFirst {
@@ -189,13 +193,6 @@ internal class VariantProcessor(
           }
         }
 
-//        if (buildDependencies.size == 0) {
-//          explodeTask.dependsOn(prepareTask)
-//        }
-//        else {
-//          SomeUtils.green("$explodeTask dependsOn ${buildDependencies.first()}")
-//          explodeTask.dependsOn(buildDependencies.first())
-//        }
         val javacTask = mVersionAdapter.javaCompileTask
         javacTask.dependsOn(explodeTask)
         bundleTask.dependsOn(explodeTask)

@@ -2,7 +2,7 @@ package com.tangnb.superaar
 
 import org.gradle.api.Project
 import java.io.File
-import java.util.*
+import java.util.ArrayList
 
 /**
  * process jars and classes
@@ -90,7 +90,7 @@ object ExplodedHelper {
         continue
       }
       LogUtil.green(
-          "processClassesJarInfoClasses androidLibrary.classesJarFile is ${androidLibrary.classesJarFile.absolutePath}")
+          "processClassesJarInfoClasses: ${androidLibrary.classesJarFile.absolutePath}")
       allJarFiles.add(androidLibrary.classesJarFile)
     }
     copyClassesToMainBuildInterClassDir(project, allJarFiles, buildInterClassPathDir)
