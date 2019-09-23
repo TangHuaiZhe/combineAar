@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name_main">lib-main</string>
+    <string name="java_lib">this is from java lib</string>
+</resources>

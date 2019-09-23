@@ -1,0 +1,51 @@
+apply plugin: 'com.android.library'
+apply plugin: "com.tangnb.CombineAar"
+
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+android {
+    compileSdkVersion 27
+
+    defaultConfig {
+        minSdkVersion 16
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+// If the value is changed to true, the dependencies of the remote dependency will also be embedded in the final aar.
+// the default value of transitive is false
+configurations.embed.transitive = true
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: '*.jar')
+    // java dependency
+    embed project(path: ':lib-java', configuration:'default')
+    // aar dependency
+    embed project(path: ':lib-aar', configuration:'default')
+    // aar dependency
+    embed project(path: ':lib-aar2', configuration:'default')
+    // local full aar dependency
+    embed project(path: ':lib-aar-local', configuration:'default')
+    // local full aar dependency
+    embed (name:'lib-aar-local2',ext:'aar')
+    // remote jar dependency
+    embed 'com.google.guava:guava:20.0'
+    // remote aar dependency
+    embed 'com.facebook.fresco:fresco:1.11.0'
+    // don't want to embed in
+    compileOnly 'com.android.support:appcompat-v7:27.1.1'
+}
+

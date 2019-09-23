@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name_aar">lib-aar</string>
+    <string name="lib_aar">this is from aar lib</string>
+</resources>
