@@ -21,7 +21,7 @@ buildscript {
     }
   }
   dependencies {
-    classpath "gradle.plugin.com.tangnb.plugin:CombineAar:1.0.2-SNAPSHOT"
+    classpath "gradle.plugin.com.tangnb.plugin:CombineAar:1.0.4-SNAPSHOT"
   }
 }
 
