@@ -9,7 +9,7 @@
 dependencies {
     embed project(path: ':module1', configuration: 'default')
     embed project(path: ':module2', configuration: 'default')
-    }
+}
 ```
 
 集成:
