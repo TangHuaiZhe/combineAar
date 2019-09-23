@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "com.tangnb.plugin"
-version = "1.0.3-SNAPSHOT"
+version = "1.0.4-SNAPSHOT"
 
 repositories {
   jcenter()
@@ -23,7 +23,7 @@ dependencies {
   implementation(kotlin("stdlib-jdk8"))
   implementation(gradleApi())
   implementation(localGroovy())
-  implementation("com.google.android:android:4.1.1.4")
+//  implementation("com.google.android:android:4.1.1.4")
   implementation("com.android.tools.build:gradle:3.4.1")
 
 }
@@ -83,7 +83,7 @@ pluginBundle {
 //tasks.named<Upload>("uploadArchives") {
 //    repositories.withGroovyBuilder {
 //        "mavenDeployer" {
-//            "repository"("url" to "file://localhost/Users/tang/.m2/repository")
+//            "repository"("url" to uri("/Users/tang/.m2/repository"))
 //            "pom" {
 //                setProperty("version", version)
 //                setProperty("artifactId", "removeRes")

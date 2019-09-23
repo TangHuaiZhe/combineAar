@@ -1,6 +1,5 @@
 package com.tangnb.superaar
 
-import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.LibraryVariant
 import org.gradle.api.Project
@@ -12,18 +11,17 @@ import org.gradle.jvm.tasks.Jar
 import java.io.File
 import java.io.FileOutputStream
 
-@SuppressLint("DefaultLocale")
 class RProcessor(
-    private val mProject: Project,
-    private val mVariant: LibraryVariant,
-    private val mLibraries: Collection<AarLib>?,
-    private val mGradlePluginVersion: String
+  private val mProject: Project,
+  private val mVariant: LibraryVariant,
+  private val mLibraries: Collection<AarLib>?,
+  private val mGradlePluginVersion: String
 ) {
 
   private val symbolsMap: Map<String, HashMap<String, String>>
     get() {
       val file = mVersionAdapter.symbolFile
-      LogUtil.green("get Rfile and deal: ${file.absolutePath}")
+      LogUtil.green("get R file and deal: ${file.absolutePath}")
       if (!file.exists()) {
         throw IllegalAccessException("{$file.absolutePath} not found")
       }
@@ -79,9 +77,9 @@ class RProcessor(
   }
 
   fun inject(bundleTask: Task) {
-    val RFileTask = createRFileTask(mJavaDir)
-    val RClassTask = createRClassTask(mJavaDir, mClassDir)
-    val RJarTask = createRJarTask(mClassDir, mJarDir)
+    val rFileTask = createRFileTask(mJavaDir)
+    val rClassTask = createRClassTask(mJavaDir, mClassDir)
+    val rJarTask = createRJarTask(mClassDir, mJarDir)
     val reBundleAar = createBundleAarTask(mAarUnZipDir, mAarOutputDir, mAarOutputPath)
 
     reBundleAar.doFirst {
@@ -114,15 +112,15 @@ class RProcessor(
       }
     }
 
-    bundleTask.finalizedBy(RFileTask)
-    RFileTask.finalizedBy(RClassTask)
-    RClassTask.finalizedBy(RJarTask)
-    RJarTask.finalizedBy(reBundleAar)
+    bundleTask.finalizedBy(rFileTask)
+    rFileTask.finalizedBy(rClassTask)
+    rClassTask.finalizedBy(rJarTask)
+    rJarTask.finalizedBy(reBundleAar)
   }
 
   private fun createRFile(
-      library: AarLib, rFolder: File,
-      symbolsMap: Map<String, HashMap<String, String>>
+    library: AarLib, rFolder: File,
+    symbolsMap: Map<String, HashMap<String, String>>
   ) {
     val libPackageName = mVariant.applicationId
     val aarPackageName = library.packageName
@@ -246,9 +244,9 @@ class RProcessor(
    * aar重新打包任务
    */
   private fun createBundleAarTask(
-      fromFile: File,
-      destDir: File,
-      filePath: String
+    fromFile: File,
+    destDir: File,
+    filePath: String
   ): AbstractArchiveTask {
     val taskName = "reBundleAar" + mVariant.name.capitalize()
 

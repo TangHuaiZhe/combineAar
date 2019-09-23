@@ -1,6 +1,5 @@
 package com.tangnb.superaar
 
-import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.LibraryVariant
 import com.android.build.gradle.internal.tasks.MergeFileTask
@@ -12,18 +11,23 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.TaskDependency
 import java.io.File
 
-@SuppressLint("DefaultLocale")
 internal class VariantProcessor(
-    private val mProject: Project,
-    private val mVariant: LibraryVariant
+  private val mProject: Project,
+  private val mVariant: LibraryVariant
 ) {
 
   private val mResolvedArtifacts = ArrayList<DefaultResolvedArtifact>()
 
-  private val mAndroidArchiveLibraries = ArrayList<AarLib>()//项目aar list
+  /**
+   * AarList
+   */
+  private val aarLibList = ArrayList<AarLib>()
 
   private val mJarFiles = ArrayList<File>()
 
+  /**
+   * 需要解压复制的Aar
+   */
   private val mExplodeTasks = ArrayList<Task>()
 
   private var mGradlePluginVersion: String = ""
@@ -36,15 +40,13 @@ internal class VariantProcessor(
     // gradle version
     mProject.rootProject.buildscript.configurations.getByName("classpath")
         .dependencies.forEach { dep ->
-      LogUtil.blue("${dep.group} ${dep.name} ${dep.version}")
+      LogUtil.blue("classpath dep is: ${dep.group} ${dep.name} ${dep.version}")
       if (dep.group == "com.android.tools.build" && dep.name == "gradle") {
         mGradlePluginVersion = dep.version!!
       }
     }
-    if (mGradlePluginVersion.isEmpty()) {
-      throw IllegalStateException(
-          "com.android.tools.build:gradle is no set in the root build.gradle file!!")
-    }
+    check(mGradlePluginVersion.isNotEmpty())
+    { "com.android.tools.build:gradle is no set in the root build.gradle file!!" }
     mVersionAdapter = VersionAdapter(mProject, mVariant, mGradlePluginVersion)
   }
 
@@ -56,7 +58,7 @@ internal class VariantProcessor(
   }
 
   private fun addAndroidArchiveLibrary(library: AarLib) {
-    mAndroidArchiveLibraries.add(library)
+    aarLibList.add(library)
   }
 
   fun addUnResolveArtifact(dependencies: Set<ResolvedDependency>?) {
@@ -85,7 +87,7 @@ internal class VariantProcessor(
 
     processClassesAndJars(bundleTask)
 
-    if (mAndroidArchiveLibraries.isEmpty()) {
+    if (aarLibList.isEmpty()) {
       return
     }
     processManifest()
@@ -94,7 +96,7 @@ internal class VariantProcessor(
     processJniLibs()
 //    processProguardTxt(prepareTask) //todo 等待支持
     val rProcessor =
-        RProcessor(mProject, mVariant, mAndroidArchiveLibraries, mGradlePluginVersion)
+        RProcessor(mProject, mVariant, aarLibList, mGradlePluginVersion)
     rProcessor.inject(bundleTask)
   }
 
@@ -128,77 +130,95 @@ internal class VariantProcessor(
   }
 
   /**
-   * exploded artifact files
+   * 解压 artifact files
    */
   private fun processArtifacts(prepareTask: Task, bundleTask: Task) {
     for (artifact in mResolvedArtifacts) {
-      LogUtil.green("processArtifacts $artifact")
+      LogUtil.green("准备解压Aar: $artifact")
       if (CombineAarPlugin.ARTIFACT_TYPE_JAR == artifact.type) {
         addJarFile(artifact.file)
       } else if (CombineAarPlugin.ARTIFACT_TYPE_AAR == artifact.type) {
         //artifact:BaseCommon-WKPre-debug.aar
         val archiveLibrary = AarLib(mProject, artifact, mVariant.name)
         addAndroidArchiveLibrary(archiveLibrary)
-        //todo 找到当前任务的依赖task
+        //todo 找到当前任务的依赖buildDependencies.first,一般而言就是被依赖AarLibrary的bundle**Aar任务
         val buildDependencies =
             artifact.getBuildDependencies().getDependencies(null)
         for (dep in buildDependencies) {
           //BaseCommon-WKDev-debug.aar dep is task ':BaseCommon:bundleWKDevDebugAar'
           LogUtil.green("$artifact dep is $dep")
         }
-        archiveLibrary.rootFolder.delete()
 
-        val zipFolder = archiveLibrary.rootFolder
-        zipFolder.mkdirs()
+        val zipFolder = createZipFolder(archiveLibrary)
 
         val group = artifact.moduleVersion.id.group.capitalize()
         val name = artifact.name.capitalize()
         val taskName = "explode$group$name${mVariant.name.capitalize()}"
 
         val explodeTask = mProject.tasks.create(taskName) {
-          println("prepare explodeTask $taskName")
+          println("the explodeTask is: $taskName")
         }
 
         if (buildDependencies.size == 0) {
           explodeTask.dependsOn(prepareTask)
-        }else {
+        } else {
           explodeTask.dependsOn(buildDependencies.first()).mustRunAfter(buildDependencies.first())
           buildDependencies.first().finalizedBy(explodeTask)
         }
 
-        var copyTarget = ""
+        var aarTarget = ""
         explodeTask.doFirst {
           LogUtil.green("explodeTask doFirst")
           //todo 找到编译出来的module的aar
           val path = artifact.file.absolutePath.substringBeforeLast("/")
           File(path).walk().filter { it.isFile }.forEach {
-            if (it.name.replace("-", "").toLowerCase() == artifact.toString().replace("-",
-                    "").toLowerCase()) {
-              copyTarget = it.absolutePath
+
+            val fileName = it.nameWithoutExtension.replace("-", "").toLowerCase()
+            val targetAarName = artifact.name.replace("-",
+                "").toLowerCase()
+
+            when {
+              fileName == targetAarName -> aarTarget = it.absolutePath
+              //todo 有没有更好的方式 ugly fix
+              fileName == targetAarName.plus("release") -> aarTarget = it.absolutePath
+              fileName.contains(targetAarName) -> aarTarget = it.absolutePath
             }
           }
-          if (copyTarget.isEmpty()) {
-            LogUtil.yellow("找不到aar文件1: ${artifact.file.absolutePath}")
+
+          check(aarTarget.isNotEmpty()) {
+            "找不到aar文件1: ${artifact.file.absolutePath}"
           }
         }
 
+        // 解压copyTarget后复制到zipFolder
         explodeTask.doLast {
           LogUtil.green("explodeTask doLast")
-          // 复制操作
-          if (File(copyTarget).exists()) {
-            copyAar(mProject.zipTree(copyTarget), zipFolder)
+          if (File(aarTarget).exists()) {
+            copyAar(mProject.zipTree(aarTarget), zipFolder)
             LogUtil.green("复制完成: ${artifact.file.absolutePath}")
           } else {
-            LogUtil.yellow("找不到aar文件2: ${artifact.file.absolutePath}")
+            throw IllegalStateException("找不到aar文件2: ${artifact.file.absolutePath}")
           }
         }
 
+        // inject到任务队列，在javaCompileTask和bundleTask之前执行
         val javacTask = mVersionAdapter.javaCompileTask
         javacTask.dependsOn(explodeTask)
         bundleTask.dependsOn(explodeTask)
         mExplodeTasks.add(explodeTask)
       }
     }
+  }
+
+  /**
+   * 删除并重新创建文件夹
+   * 用于放置解压Aar之后的文件的位置
+   */
+  private fun createZipFolder(archiveLibrary: AarLib): File {
+    archiveLibrary.rootExplodedFolder.delete()
+    val zipFolder = archiveLibrary.rootExplodedFolder
+    zipFolder.mkdirs()
+    return zipFolder
   }
 
   /**
@@ -224,7 +244,7 @@ internal class VariantProcessor(
     manifestsMergeTask.variantName = mVariant.name
     manifestsMergeTask.mainManifestFile = manifestOutputBackup
     val list = ArrayList<File>()
-    for (archiveLibrary in mAndroidArchiveLibraries) {
+    for (archiveLibrary in aarLibList) {
       list.add(archiveLibrary.manifest)
     }
     manifestsMergeTask.secondaryManifestFiles = list
@@ -253,11 +273,11 @@ internal class VariantProcessor(
     task.doFirst {
       val dustDir = mVersionAdapter.classPathDirFiles.first()
       if (isMinifyEnabled) {
-        ExplodedHelper.processClassesJarInfoClasses(mProject, mAndroidArchiveLibraries, dustDir)
-        ExplodedHelper.processLibsIntoClasses(mProject, mAndroidArchiveLibraries, mJarFiles,
+        ExplodedHelper.processClassesJarInfoClasses(mProject, aarLibList, dustDir)
+        ExplodedHelper.processLibsIntoClasses(mProject, aarLibList, mJarFiles,
             dustDir)
       } else {
-        ExplodedHelper.processClassesJarInfoClasses(mProject, mAndroidArchiveLibraries, dustDir)
+        ExplodedHelper.processClassesJarInfoClasses(mProject, aarLibList, dustDir)
       }
     }
     return task
@@ -266,14 +286,14 @@ internal class VariantProcessor(
   private fun handleJarMergeTask(): Task {
     val task = mProject.tasks.create("mergeJars" + mVariant.name.capitalize())
     task.doFirst {
-      ExplodedHelper.processLibsIntoLibs(mProject, mAndroidArchiveLibraries, mJarFiles,
+      ExplodedHelper.processLibsIntoLibs(mProject, aarLibList, mJarFiles,
           mVersionAdapter.libsDirFile)
     }
     return task
   }
 
   /**
-   * merge classes and jars
+   * 合并 classes 和 jars
    */
   private fun processClassesAndJars(bundleTask: Task) {
     val isMinifyEnabled = mVariant.buildType.isMinifyEnabled
@@ -306,7 +326,7 @@ internal class VariantProcessor(
   private fun dealMinify(isMinifyEnabled: Boolean) {
     if (isMinifyEnabled) {
       //merge proguard file
-      for (archiveLibrary in mAndroidArchiveLibraries) {
+      for (archiveLibrary in aarLibList) {
         val thirdProguardFiles = archiveLibrary.proguardRules
         for (file in thirdProguardFiles) {
           if (file.exists()) {
@@ -333,7 +353,7 @@ internal class VariantProcessor(
         "Can not find task $taskPath!")
 
     resourceGenTask.doFirst {
-      for (archiveLibrary in mAndroidArchiveLibraries) {
+      for (archiveLibrary in aarLibList) {
         android.sourceSets.forEach { androidSourceSet ->
           if (androidSourceSet.name == mVariant.name) {
             LogUtil.green("Merge resource，Library res：${archiveLibrary.resFolder}")
@@ -357,7 +377,7 @@ internal class VariantProcessor(
     val assetsTask = mVersionAdapter.mergeAssets
 
     assetsTask.doFirst {
-      for (archiveLibrary in mAndroidArchiveLibraries) {
+      for (archiveLibrary in aarLibList) {
         if (archiveLibrary.assetsFolder.exists()) {
           android.sourceSets.forEach {
             if (it.name == mVariant.name) {
@@ -382,7 +402,7 @@ internal class VariantProcessor(
         "Can not find task $taskPath!")
 
     mergeJniLibsTask.doFirst {
-      for (archiveLibrary in mAndroidArchiveLibraries) {
+      for (archiveLibrary in aarLibList) {
         if (archiveLibrary.jniFolder.exists()) {
           android.sourceSets.forEach {
             if (it.name == mVariant.name) {
@@ -405,7 +425,7 @@ internal class VariantProcessor(
     val taskPath = "merge" + mVariant.name.capitalize() + "ConsumerProguardFiles"
     val mergeFileTask = (mProject.tasks.findByPath(taskPath) ?: throw RuntimeException(
         "Can not find task $taskPath!")) as MergeFileTask
-    for (archiveLibrary in mAndroidArchiveLibraries) {
+    for (archiveLibrary in aarLibList) {
       val thirdProguardFiles = archiveLibrary.proguardRules
       for (file in thirdProguardFiles) {
         if (file.exists()) {
@@ -416,7 +436,7 @@ internal class VariantProcessor(
     }
     mergeFileTask.doFirst {
       val proguardFiles = mergeFileTask.inputFiles
-      for (archiveLibrary in mAndroidArchiveLibraries) {
+      for (archiveLibrary in aarLibList) {
         val thirdProguardFiles = archiveLibrary.proguardRules
         for (file in thirdProguardFiles) {
           if (file.exists()) {

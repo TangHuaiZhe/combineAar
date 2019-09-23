@@ -10,15 +10,13 @@ import javax.xml.parsers.DocumentBuilderFactory
  * android aar
  */
 class AarLib(
-    private val mProject: Project,
-    private val mArtifact: ResolvedArtifact,
-    private val mVariantName: String
+  private val mProject: Project,
+  private val mArtifact: ResolvedArtifact,
+  private val mVariantName: String
 ) {
 
   init {
-    if ("aar" != mArtifact.type) {
-      throw IllegalArgumentException("artifact must be aar type!")
-    }
+    require("aar" == mArtifact.type) { "artifact must be aar type!" }
   }
 
   val group: String
@@ -30,7 +28,10 @@ class AarLib(
   val version: String
     get() = mArtifact.moduleVersion.id.version
 
-  val rootFolder: File
+  /**
+   * 解压Aar之后放置aar内文件的位置
+   */
+  val rootExplodedFolder: File
     get() {
       val explodedRootDir = mProject.file(
           mProject.buildDir.toString() + "/intermediates" + "/exploded-aar/")
@@ -43,18 +44,18 @@ class AarLib(
     }
 
   val aidlFolder: File
-    get() = File(rootFolder, "aidl")
+    get() = File(rootExplodedFolder, "aidl")
 
   val assetsFolder: File
-    get() = File(rootFolder, "assets")
+    get() = File(rootExplodedFolder, "assets")
 
   val classesJarFile: File
-    get() = File(rootFolder, "classes.jar")
+    get() = File(rootExplodedFolder, "classes.jar")
 
   val localJars: Collection<File>
     get() {
       val localJars = ArrayList<File>()
-      val jarList = File(rootFolder, "libs").listFiles()
+      val jarList = File(rootExplodedFolder, "libs").listFiles()
       if (jarList != null) {
         for (jars in jarList) {
           if (jars.isFile && jars.name.endsWith(".jar")) {
@@ -66,27 +67,27 @@ class AarLib(
     }
 
   val jniFolder: File
-    get() = File(rootFolder, "jni")
+    get() = File(rootExplodedFolder, "jni")
 
   val resFolder: File
-    get() = File(rootFolder, "res")
+    get() = File(rootExplodedFolder, "res")
 
   val manifest: File
-    get() = File(rootFolder, "AndroidManifest.xml")
+    get() = File(rootExplodedFolder, "AndroidManifest.xml")
 
   val lintJar: File
-    get() = File(rootFolder, "lint.jar")
+    get() = File(rootExplodedFolder, "lint.jar")
 
   val proguardRules: List<File>
     get() {
       val list = ArrayList<File>()
-      list.add(File(rootFolder, "proguard-rules.pro"))
-      list.add(File(rootFolder, "proguard-project.txt"))
+      list.add(File(rootExplodedFolder, "proguard-rules.pro"))
+      list.add(File(rootExplodedFolder, "proguard-project.txt"))
       return list
     }
 
   val rFile: File
-    get() = File(rootFolder, "R.txt")
+    get() = File(rootExplodedFolder, "R.txt")
 
   val packageName: String?
     get() {

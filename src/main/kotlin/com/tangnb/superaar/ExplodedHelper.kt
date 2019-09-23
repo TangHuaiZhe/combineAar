@@ -15,9 +15,9 @@ object ExplodedHelper {
    *  将jarFiles(java工程生成的jar包) 复制到主工程的libs目录下
    */
   fun processLibsIntoLibs(
-      project: Project,
-      androidLibraries: Collection<AarLib>, jarFiles: Collection<File>,
-      mainLibsDir: File
+    project: Project,
+    androidLibraries: Collection<AarLib>, jarFiles: Collection<File>,
+    mainLibsDir: File
   ) {
 
     copyAndroidLibJarToMainLibs(androidLibraries, project, mainLibsDir)
@@ -26,9 +26,9 @@ object ExplodedHelper {
   }
 
   private fun copyJarFilesToMainLibs(
-      jarFiles: Collection<File>,
-      libsDir: File,
-      project: Project
+    jarFiles: Collection<File>,
+    libsDir: File,
+    project: Project
   ) {
     for (jarFile in jarFiles) {
       if (!jarFile.exists()) {
@@ -46,13 +46,13 @@ object ExplodedHelper {
   }
 
   private fun copyAndroidLibJarToMainLibs(
-      androidLibraries: Collection<AarLib>,
-      project: Project,
-      libsDir: File
+    androidLibraries: Collection<AarLib>,
+    project: Project,
+    libsDir: File
   ) {
     for (androidLibrary in androidLibraries) {
-      if (!androidLibrary.rootFolder.exists()) {
-        LogUtil.info("[warning]" + androidLibrary.rootFolder + " not found!")
+      if (!androidLibrary.rootExplodedFolder.exists()) {
+        LogUtil.info("[warning]" + androidLibrary.rootExplodedFolder + " not found!")
         continue
       }
 
@@ -79,14 +79,14 @@ object ExplodedHelper {
    * 如:xxx/build/intermediates/javac/WKDevDebug/classes
    */
   fun processClassesJarInfoClasses(
-      project: Project,
-      androidLibraries: Collection<AarLib>, buildInterClassPathDir: File
+    project: Project,
+    androidLibraries: Collection<AarLib>, buildInterClassPathDir: File
   ) {
     LogUtil.info("Merge ClassesJar")
     val allJarFiles = ArrayList<File>()
     for (androidLibrary in androidLibraries) {
-      if (!androidLibrary.rootFolder.exists()) {
-        LogUtil.yellow("[warning]" + androidLibrary.rootFolder + " not found!")
+      if (!androidLibrary.rootExplodedFolder.exists()) {
+        LogUtil.yellow("[warning]" + androidLibrary.rootExplodedFolder + " not found!")
         continue
       }
       LogUtil.green(
@@ -97,9 +97,9 @@ object ExplodedHelper {
   }
 
   private fun copyClassesToMainBuildInterClassDir(
-      project: Project,
-      allJarFiles: ArrayList<File>,
-      buildInterClassPathDir: File
+    project: Project,
+    allJarFiles: ArrayList<File>,
+    buildInterClassPathDir: File
   ) {
     for (jarFile in allJarFiles) {
       project.copy {
@@ -114,15 +114,15 @@ object ExplodedHelper {
   }
 
   fun processLibsIntoClasses(
-      project: Project,
-      androidLibraries: Collection<AarLib>, jarFiles: Collection<File>,
-      folderOut: File
+    project: Project,
+    androidLibraries: Collection<AarLib>, jarFiles: Collection<File>,
+    folderOut: File
   ) {
     LogUtil.info("Merge Libs")
     val allJarFiles = ArrayList<File>()
     for (androidLibrary in androidLibraries) {
-      if (!androidLibrary.rootFolder.exists()) {
-        LogUtil.info("[warning]" + androidLibrary.rootFolder + " not found!")
+      if (!androidLibrary.rootExplodedFolder.exists()) {
+        LogUtil.info("[warning]" + androidLibrary.rootExplodedFolder + " not found!")
         continue
       }
 

@@ -1,6 +1,5 @@
 package com.tangnb.superaar
 
-import android.annotation.SuppressLint
 import com.android.build.gradle.api.LibraryVariant
 import com.android.build.gradle.tasks.ManifestProcessorTask
 import org.gradle.api.Project
@@ -8,11 +7,10 @@ import org.gradle.api.Task
 import org.gradle.api.file.ConfigurableFileCollection
 import java.io.File
 
-@SuppressLint("DefaultLocale")
 class VersionAdapter(
-    private val mProject: Project,
-    private val mVariant: LibraryVariant,
-    private val mGradlePluginVersion: String
+  private val mProject: Project,
+  private val mVariant: LibraryVariant,
+  private val mGradlePluginVersion: String
 ) {
 
   // >= Versions 3.2.X

@@ -1,6 +1,5 @@
 package com.tangnb.superaar
 
-import android.annotation.SuppressLint
 import com.android.build.gradle.LibraryExtension
 import com.android.build.gradle.api.LibraryVariant
 import org.gradle.api.Plugin
@@ -11,18 +10,23 @@ import org.gradle.api.artifacts.DependencyResolutionListener
 import org.gradle.api.artifacts.ResolvableDependencies
 import org.gradle.api.artifacts.ResolvedDependency
 import org.gradle.api.internal.artifacts.DefaultResolvedArtifact
-import java.util.*
+import java.util.Collections
+import java.util.HashSet
 
-@SuppressLint("DefaultLocale")
 class CombineAarPlugin : Plugin<Project> {
 
   private lateinit var mProject: Project
   private lateinit var embedConf: Configuration
 
-  // 本地aar和jar包的依赖
-  private var artifacts: Set<DefaultResolvedArtifact>? = null
-  // project依赖
-  private var unResolveArtifact: Set<ResolvedDependency>? = null
+  /**
+   * 已经确定的依赖
+   */
+  private var resolvedArtifacts: Set<DefaultResolvedArtifact> = HashSet()
+
+  /**
+   * 未确定的依赖？
+   */
+  private var unResolveArtifact: Set<ResolvedDependency> = HashSet()
 
   override fun apply(project: Project) {
 
@@ -33,7 +37,7 @@ class CombineAarPlugin : Plugin<Project> {
 
     val taskList = project.gradle.startParameter.taskNames
     for (task in taskList) {
-      LogUtil.green("your are exe gradle task: $task")
+      LogUtil.green("your are execute gradle task: $task")
     }
 
     this.mProject = project
@@ -44,7 +48,7 @@ class CombineAarPlugin : Plugin<Project> {
 
     project.afterEvaluate {
 
-      resolveArtifacts()
+      resolveLocalArtifacts()
 
       dealUnResolveArtifacts()
 
@@ -57,15 +61,15 @@ class CombineAarPlugin : Plugin<Project> {
         taskList.isNotEmpty() && taskList.first().contains(
             currentFlavor, true)
       }.forEach {
-        // 开始处理
         LogUtil.blue("start process: ${it.flavorName}${it.buildType.name.capitalize()}")
         taskFounded = true
+        // 开始处理
         processVariant(it)
       }
 
       if (!taskFounded && taskList.isNotEmpty()) {
-        LogUtil.yellow(
-            "FatLibraryPlugin ${taskList.first()} not found")
+        LogUtil.info(
+            "CombineAarPlugin has no talk with current task: ${taskList.first()}")
       }
     }
   }
@@ -73,7 +77,7 @@ class CombineAarPlugin : Plugin<Project> {
   private fun checkAndroidPlugin() {
     if (!mProject.plugins.hasPlugin("com.android.library")) {
       throw ProjectConfigurationException(
-          "combnine-aar-plugin must be applied in mProject that has android library plugin!",
+          "combine-aar-plugin must be applied in mProject that has android library plugin!",
           Throwable())
     }
   }
@@ -102,10 +106,10 @@ class CombineAarPlugin : Plugin<Project> {
   /**
    * 处理本地embed aar和jar包
    */
-  private fun resolveArtifacts() {
-    val resolvedArtifactSet = HashSet<DefaultResolvedArtifact>()
+  private fun resolveLocalArtifacts() {
+    val resolvedLocalArtifactSet = HashSet<DefaultResolvedArtifact>()
     embedConf.resolvedConfiguration.resolvedArtifacts.forEach { artifact ->
-      LogUtil.green("embedConf.resolvedConfiguration.resolvedArtifacts is $artifact")
+      LogUtil.green("embedConf.resolvedConfiguration.resolveLocalArtifacts is $artifact")
       // jar file wouldn't be here
       if (ARTIFACT_TYPE_AAR == artifact.type || ARTIFACT_TYPE_JAR == artifact.type) {
         LogUtil.green("[embed detected][${artifact.type}] ${artifact.moduleVersion.id}")
@@ -113,9 +117,13 @@ class CombineAarPlugin : Plugin<Project> {
         throw ProjectConfigurationException("Only support embed aar and jar dependencies!",
             Throwable())
       }
-      resolvedArtifactSet.add(artifact as DefaultResolvedArtifact)
+      resolvedLocalArtifactSet.add(artifact as DefaultResolvedArtifact)
     }
-    artifacts = Collections.unmodifiableSet(resolvedArtifactSet)
+    if (resolvedLocalArtifactSet.isEmpty()) {
+      LogUtil.yellow("没有embed配置的resolvedConfiguration")
+    } else {
+      resolvedArtifacts = Collections.unmodifiableSet(resolvedLocalArtifactSet)
+    }
   }
 
   /**
@@ -126,12 +134,11 @@ class CombineAarPlugin : Plugin<Project> {
 
     val processor = VariantProcessor(mProject, variant)
 
-    //
-    if (artifacts != null && artifacts!!.isNotEmpty()) {
-      processor.addArtifacts(artifacts!!)
-      LogUtil.green("processor.addArtifacts $artifacts")
+    if (resolvedArtifacts.isNotEmpty()) {
+      processor.addArtifacts(resolvedArtifacts)
+      LogUtil.blue("processor.addArtifacts $resolvedArtifacts")
     } else {
-      LogUtil.green("processor.addArtifact,but artifacts is empty")
+      LogUtil.green("processor.addArtifact,but resolvedArtifacts is empty")
     }
     processor.addUnResolveArtifact(unResolveArtifact)
     processor.processVariant()
@@ -144,7 +151,7 @@ class CombineAarPlugin : Plugin<Project> {
 
     dependencies.forEach { dependency ->
       var match = false
-      artifacts!!.forEach { artifact ->
+      resolvedArtifacts.forEach { artifact ->
         if (dependency.moduleName == artifact.name) {
           match = true
         }
@@ -154,7 +161,11 @@ class CombineAarPlugin : Plugin<Project> {
         dependencySet.add(dependency)
       }
     }
-    unResolveArtifact = Collections.unmodifiableSet(dependencySet)
+    if (dependencySet.isEmpty()) {
+      LogUtil.yellow("没有embedConf配置的unResolve dependency")
+    } else {
+      unResolveArtifact = Collections.unmodifiableSet(dependencySet)
+    }
   }
 
   companion object {

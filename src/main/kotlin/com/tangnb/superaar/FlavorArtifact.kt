@@ -1,6 +1,5 @@
 package com.tangnb.superaar
 
-import android.annotation.SuppressLint
 import com.android.build.gradle.api.LibraryVariant
 import groovy.lang.Reference
 import org.gradle.api.Project
@@ -15,14 +14,13 @@ import org.gradle.api.tasks.TaskDependency
 import org.gradle.internal.Factory
 import org.gradle.internal.component.model.DefaultIvyArtifactName
 import java.io.File
-import java.util.*
+import java.util.HashSet
 
-@SuppressLint("DefaultLocale")
 object FlavorArtifact {
 
   fun createFlavorArtifact(
-      project: Project,
-      variant: LibraryVariant, unResolvedArtifact: ResolvedDependency, version: String
+    project: Project,
+    variant: LibraryVariant, unResolvedArtifact: ResolvedDependency, version: String
   ): DefaultResolvedArtifact {
 
     val identifier =
@@ -46,7 +44,7 @@ object FlavorArtifact {
   }
 
   private fun createModuleVersionIdentifier(
-      unResolvedArtifact: ResolvedDependency
+    unResolvedArtifact: ResolvedDependency
   ): ModuleVersionIdentifier {
     return DefaultModuleVersionIdentifier.newId(unResolvedArtifact.moduleGroup,
         unResolvedArtifact.moduleName, unResolvedArtifact.moduleVersion)
@@ -70,8 +68,8 @@ object FlavorArtifact {
   }
 
   private fun getArtifactProject(
-      project: Project,
-      unResolvedArtifact: ResolvedDependency
+    project: Project,
+    unResolvedArtifact: ResolvedDependency
   ): Project? {
     for (p in project.rootProject.allprojects) {
       if (unResolvedArtifact.moduleName == p.name) {
@@ -84,8 +82,8 @@ object FlavorArtifact {
   }
 
   private fun createArtifactFile(
-      project: Project, variant: LibraryVariant,
-      unResolvedArtifact: ResolvedDependency, version: String
+    project: Project, variant: LibraryVariant,
+    unResolvedArtifact: ResolvedDependency, version: String
   ): File {
     val buildPath = project.buildDir.path
 //    val outputName = if (project.gradle.gradleVersion.gradleVersionBiggerOrEqualThan("5.1.0") && version.gradleVersionBiggerOrEqualThan("3.4.0")
