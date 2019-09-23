@@ -6,9 +6,18 @@
 
 
 ```gradle
+
+//不影响正常开发，只在出包的时候开启
+def combineAar = false
+
 dependencies {
+  if (combineAar) {
     embed project(path: ':module1', configuration: 'default')
     embed project(path: ':module2', configuration: 'default')
+   }else {
+    api project(path: ':module1')
+    api project(path: ':module2')
+   }
 }
 ```
 
